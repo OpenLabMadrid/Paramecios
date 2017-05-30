@@ -1,3 +1,6 @@
+#Para que me detecte el encoding del archivo
+#-*- coding: utf-8 -*-
+
 import cv2
 import time
 import numpy as np
@@ -18,7 +21,7 @@ class fruta():
         self.imagen=cv2.imread(self.imagenes[self.seleccion],-1)
         self.alto, self.ancho = self.imagen.shape[:2]
         self.pos_x=np.random.random_integers(ancho_img-(self.ancho+1));
-        self.pos_y=np.random.random_integers(alto_img-(self.ancho+1));
+        self.pos_y=np.random.random_integers(alto_img-(self.alto+1));
                
     def sel_puntaje(self):
         self.puntajes = { 'banano': 20, 'cereza': 1, 'fresa': 15, 'limon': 10, 'pina': 15, 'sandia': 5  }
@@ -27,14 +30,16 @@ class fruta():
 
     def dibujar(self,fondo):
         self.fondo=fondo
-        if self.disponible==1:
-            for i in range(self.alto):
-                for j in range(self.ancho):
-                    if self.imagen[i,j,3]>20:
-                        self.fondo[self.pos_y+i,self.pos_x+j,[0,1,2]]=self.imagen[i,j,[0,1,2]];
+        if self.disponible==0:
+            self.sel_img()
+            self.disponible = 1
+        for i in range(self.alto):
+            for j in range(self.ancho):
+                if self.imagen[i,j,3]>20:
+                    self.fondo[self.pos_y+i,self.pos_x+j,[0,1,2]]=self.imagen[i,j,[0,1,2]];
         return self.fondo;
     
-    def matar(self,punto_x, punto_y):
+    def matar(self,punto_x, punto_y,puntuacion):
         if self.disponible==1:
             self.punto_x=punto_x
             self.punto_y=punto_y
@@ -42,10 +47,11 @@ class fruta():
                     if self.punto_y>self.pos_y and self.punto_y<self.pos_y+self.alto: 
                         self.disponible=0
                         print("Muerto "+ self.seleccion)
-        
+                        puntuacion = puntuacion + 1
+        return puntuacion
 
 # A partir de aqui se hace la ejecucion del programa
-cam = cv2.VideoCapture(1)
+cam = cv2.VideoCapture(0)
 
 winName = "Detector de Movimiento"
 #cv2.namedWindow(winName, cv2.CV_WINDOW_AUTOSIZE)
@@ -62,6 +68,8 @@ fresa=fruta('fresa')
 limon=fruta('limon')
 pina=fruta('pina')
 sandia=fruta('sandia')
+
+puntuacion = 0
 
 while True:
 
@@ -89,23 +97,27 @@ while True:
                     print(contornos[i-1][j][0][0])
                     print('---')
                     '''
-                    banano.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1])
-                    cereza.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1])
-                    fresa.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1])
-                    limon.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1])
-                    pina.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1])
-                    sandia.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1])
+                    puntuacion= banano.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1],puntuacion)
+                    puntuacion=cereza.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1],puntuacion)
+                    puntuacion=fresa.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1],puntuacion)
+                    puntuacion=limon.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1],puntuacion)
+                    puntuacion=pina.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1],puntuacion)
+                    puntuacion=sandia.matar(contornos[i-1][j][0][0],contornos[i-1][j][0][1],puntuacion)
                     #'''
-                banano.matar(cx[i-1],cy[i-1])
-                cereza.matar(cx[i-1],cy[i-1])
-                fresa.matar(cx[i-1],cy[i-1])
-                limon.matar(cx[i-1],cy[i-1])
-                pina.matar(cx[i-1],cy[i-1])
-                sandia.matar(cx[i-1],cy[i-1])
+                puntuacion=banano.matar(cx[i-1],cy[i-1],puntuacion)
+                puntuacion=cereza.matar(cx[i-1],cy[i-1],puntuacion)
+                puntuacion=fresa.matar(cx[i-1],cy[i-1],puntuacion)
+                puntuacion=limon.matar(cx[i-1],cy[i-1],puntuacion)
+                puntuacion=pina.matar(cx[i-1],cy[i-1],puntuacion)
+                puntuacion=sandia.matar(cx[i-1],cy[i-1],puntuacion)
                 n = n + 1
     fuente = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(sblur,str(n),(360,50),fuente,2,(0,255,0),2,cv2.LINE_AA)
+    #PARA DIBUJAR EL NÚMERO DE PARAMECIOS
+    #cv2.putText(sblur,str(n),(360,50),fuente,2,(0,255,0),2,cv2.LINE_AA)
 
+    #DIBUJAMOS PUNTUACIÓN
+    cv2.putText(sblur,'Has comido ' + str(puntuacion) + ' frutas',(150,50),fuente,1,(0,255,0),2,cv2.LINE_AA)
+    
     sblur=banano.dibujar(sblur)
     sblur=cereza.dibujar(sblur)
     sblur=fresa.dibujar(sblur)
